@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
-const API = `http://${window.location.hostname}:8080/api`;
+const API = `"https://alam-mo-ah-v2-production.up.railway.app/api";`;
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
