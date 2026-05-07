@@ -42,19 +42,35 @@ export function AuthProvider({ children }) {
 
   const register = async (username, email, password, course) => {
     setLoading(true);
+
     try {
       const res = await fetch(`${API}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email, password, course })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Registration failed');
+
+      const text = await res.text();
+      console.log(text);
+
+      let data = {};
+
+      try {
+        data = JSON.parse(text);
+      } catch {}
+
+      if (!res.ok) {
+        throw new Error(data.error || text || 'Registration failed');
+      }
+
       setToken(data.token);
       setUser(data);
+
       localStorage.setItem('ama_token', data.token);
       localStorage.setItem('ama_user', JSON.stringify(data));
+
       return { success: true };
+
     } catch (err) {
       return { success: false, error: err.message };
     } finally {
