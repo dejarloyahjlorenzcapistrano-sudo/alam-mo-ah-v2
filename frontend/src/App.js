@@ -263,7 +263,14 @@ function SearchPage({ searchQuery, onAuthOpen }) {
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [copied, setCopied] = useState(null);
+    const [languages, setLanguages] = useState([]);
+    const [selectedLangs, setSelectedLangs] = useState([]);
+    const [filterOpen, setFilterOpen] = useState(false);
     const { isLoggedIn } = useAuth();
+
+    useEffect(() => {
+        fetch(`${API}/languages`).then(r => r.json()).then(setLanguages).catch(() => {});
+    }, []);
 
     useEffect(() => {
         if (!searchQuery.trim()) return;
@@ -271,6 +278,16 @@ function SearchPage({ searchQuery, onAuthOpen }) {
         fetch(`${API}/search?q=${encodeURIComponent(searchQuery)}`)
             .then(r => r.json()).then(d => { setResults(d); setLoading(false); }).catch(() => setLoading(false));
     }, [searchQuery]);
+
+    const toggleLang = (id) => {
+        setSelectedLangs(prev =>
+            prev.includes(id) ? prev.filter(l => l !== id) : [...prev, id]
+        );
+    };
+
+    const filteredResults = selectedLangs.length === 0
+        ? results
+        : results.filter(r => selectedLangs.includes(r.languageId));
 
     const copy = (text, id) => {
         navigator.clipboard.writeText(text).then(() => { setCopied(id); setTimeout(() => setCopied(null), 2000); });
@@ -282,10 +299,40 @@ function SearchPage({ searchQuery, onAuthOpen }) {
                 <p className="search-query-label">
                     <span className="t-prompt">$</span> results for <span className="search-query-term">"{searchQuery}"</span>
                 </p>
-                {!loading && <p className="search-count">{results.length} result{results.length !== 1 ? 's' : ''} found</p>}
+                <div className="search-header-right">
+                    {!loading && <p className="search-count">{filteredResults.length} result{filteredResults.length !== 1 ? 's' : ''} found</p>}
+                    <button
+                        className={`filter-toggle-btn ${filterOpen ? 'active' : ''}`}
+                        onClick={() => setFilterOpen(o => !o)}
+                    >
+                        ⚙ filter {selectedLangs.length > 0 && <span className="filter-badge">{selectedLangs.length}</span>}
+                    </button>
+                </div>
             </div>
+
+            {filterOpen && (
+                <div className="filter-chip-tray">
+                    {languages.map(lang => (
+                        <button
+                            key={lang.id}
+                            className={`filter-chip ${selectedLangs.includes(lang.id) ? 'selected' : ''}`}
+                            style={{ '--lang-color': lang.color }}
+                            onClick={() => toggleLang(lang.id)}
+                        >
+                            <span className="chip-icon">{lang.icon}</span>
+                            {lang.name}
+                        </button>
+                    ))}
+                    {selectedLangs.length > 0 && (
+                        <button className="filter-chip clear-chip" onClick={() => setSelectedLangs([])}>
+                            ✕ clear
+                        </button>
+                    )}
+                </div>
+            )}
+
             {loading && <p className="loading-text">searching<span className="blink">...</span></p>}
-            {!loading && results.length === 0 && searchQuery && (
+            {!loading && filteredResults.length === 0 && searchQuery && (
                 <div className="empty-state">
                     <p className="empty-icon">¯\_(ツ)_/¯</p>
                     <p className="empty-text">Wala akong nakita for "<strong>{searchQuery}</strong>"</p>
@@ -293,7 +340,7 @@ function SearchPage({ searchQuery, onAuthOpen }) {
                 </div>
             )}
             <div className="search-results">
-                {results.map(entry => (
+                {filteredResults.map(entry => (
                     <div key={`${entry.languageId}-${entry.id}`} className="entry-card search-result-card">
                         <div className="entry-header">
                             <div>
