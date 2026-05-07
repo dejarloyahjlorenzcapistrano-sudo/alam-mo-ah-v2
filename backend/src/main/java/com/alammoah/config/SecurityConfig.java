@@ -41,16 +41,24 @@ public class SecurityConfig {
 
         http
                 .cors(cors -> {})
-                .csrf(CsrfConfigurer<HttpSecurity>::disable)
+                .csrf(AbstractHttpConfigurer::disable)
 
                 .httpBasic(httpBasic -> httpBasic.disable())
 
                 .formLogin(form -> form.disable())
 
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().authenticated()
-                );
+                )
+
+                .authenticationProvider(authenticationProvider())
+
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
