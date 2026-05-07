@@ -30,21 +30,23 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        if (request.getMethod().equals("OPTIONS")) {
+        // Allow preflight CORS requests
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            response.setStatus(HttpServletResponse.SC_OK);
             filterChain.doFilter(request, response);
             return;
         }
 
         final String authHeader = request.getHeader("Authorization");
 
+        // No token? Just continue.
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        final String jwt = authHeader.substring(7);
-
         try {
+            final String jwt = authHeader.substring(7);
             final String username = jwtUtil.extractUsername(jwt);
 
             if (username != null &&
@@ -73,7 +75,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
 
         } catch (Exception e) {
-            // ignore invalid token
+            // Ignore invalid tokens
         }
 
         filterChain.doFilter(request, response);
