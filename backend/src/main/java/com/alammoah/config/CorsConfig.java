@@ -13,21 +13,21 @@ public class CorsConfig {
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
 
-            private CorsRegistry registry;
-
             @Override
             public void addCorsMappings(@NonNull CorsRegistry registry) {
-                this.registry = registry;
-
                 registry.addMapping("/**")
-                        .allowedOrigins(
-                                "https://alam-mo-ah-v2.vercel.app",
-                                "https://alam-mo-ah-v2-ri1xhsgqq.vercel.app",
-                                "https://alam-mo-ah-v2-kyu4fpabg.vercel.app"
+                        // ✅ FIXED: Use a wildcard pattern instead of hardcoded Vercel preview URLs.
+                        // Each Vercel deployment gets a unique URL like alam-mo-ah-v2-abc123.vercel.app
+                        // so hardcoding them caused CORS failures on every new deployment.
+                        .allowedOriginPatterns(
+                                "https://*.vercel.app",
+                                "http://localhost:*"  // keeps local dev working too
                         )
-                        .allowedMethods("*")
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                         .allowedHeaders("*")
-                        .allowCredentials(true);
+                        .exposedHeaders("Authorization")
+                        .allowCredentials(true)
+                        .maxAge(3600);
             }
         };
     }

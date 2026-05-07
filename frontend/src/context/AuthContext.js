@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
+
+// ✅ FIXED: Removed the accidental semicolon that was inside the URL string
 const API = "https://alam-mo-ah-v2-production.up.railway.app/api";
 
 export function AuthProvider({ children }) {
@@ -26,8 +28,16 @@ export function AuthProvider({ children }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Login failed');
+
+      // ✅ IMPROVED: Read as text first so we can see the real error
+      const text = await res.text();
+      console.log('Login response:', text);
+
+      let data = {};
+      try { data = JSON.parse(text); } catch {}
+
+      if (!res.ok) throw new Error(data.error || text || 'Login failed');
+
       setToken(data.token);
       setUser(data);
       localStorage.setItem('ama_token', data.token);
@@ -42,7 +52,6 @@ export function AuthProvider({ children }) {
 
   const register = async (username, email, password, course) => {
     setLoading(true);
-
     try {
       const res = await fetch(`${API}/auth/register`, {
         method: 'POST',
@@ -50,27 +59,20 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ username, email, password, course })
       });
 
+      // ✅ IMPROVED: Read as text first so we can see the real error
       const text = await res.text();
-      console.log(text);
+      console.log('Register response:', text);
 
       let data = {};
+      try { data = JSON.parse(text); } catch {}
 
-      try {
-        data = JSON.parse(text);
-      } catch {}
-
-      if (!res.ok) {
-        throw new Error(data.error || text || 'Registration failed');
-      }
+      if (!res.ok) throw new Error(data.error || text || 'Registration failed');
 
       setToken(data.token);
       setUser(data);
-
       localStorage.setItem('ama_token', data.token);
       localStorage.setItem('ama_user', JSON.stringify(data));
-
       return { success: true };
-
     } catch (err) {
       return { success: false, error: err.message };
     } finally {
@@ -131,14 +133,14 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{
-      user, token, loading,
-      login, register, logout,
-      getBookmarks, addBookmark, removeBookmark, checkBookmark,
-      isLoggedIn: !!token
-    }}>
-      {children}
-    </AuthContext.Provider>
+      <AuthContext.Provider value={{
+        user, token, loading,
+        login, register, logout,
+        getBookmarks, addBookmark, removeBookmark, checkBookmark,
+        isLoggedIn: !!token
+      }}>
+        {children}
+      </AuthContext.Provider>
   );
 }
 

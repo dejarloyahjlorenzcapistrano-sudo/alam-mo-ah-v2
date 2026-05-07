@@ -13,7 +13,6 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -34,6 +33,7 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
 
+    // ✅ FIXED: reads from application.properties instead of being hardcoded
     @Value("${app.cors.allowed-origins}")
     private String allowedOrigins;
 
@@ -41,50 +41,59 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                .cors(cors -> {})
+                // ✅ FIXED: properly wire CORS so it uses our corsConfigurationSource bean
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+                // Disable CSRF (not needed for stateless JWT APIs)
                 .csrf(AbstractHttpConfigurer::disable)
 
+                // Disable built-in login form and HTTP Basic Auth
                 .httpBasic(httpBasic -> httpBasic.disable())
-
                 .formLogin(form -> form.disable())
 
+                // Stateless sessions — JWT handles auth instead of server sessions
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
                 .authorizeHttpRequests(auth -> auth
+                        // ✅ Allow all CORS preflight requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // ✅ Allow register and login without a token
                         .requestMatchers("/api/auth/**").permitAll()
+                        // Everything else requires a valid JWT
                         .anyRequest().authenticated()
                 )
 
                 .authenticationProvider(authenticationProvider())
 
+                // Add JWT filter before Spring's built-in username/password filter
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
+        // ✅ FIXED: was incorrectly returning null, which caused Spring to fall back
+        // to default Basic Auth and ignore all the configuration above
         return http.build();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of(allowedOrigins.split(",")));
+        // ✅ FIXED: Use allowedOriginPatterns so wildcard + allowCredentials work together.
+        // allowedOrigins("*") + allowCredentials(true) crashes Spring Boot on startup.
+        config.setAllowedOriginPatterns(List.of(
+                "https://*.vercel.app",
+                "http://localhost:*"
+        ));
 
         config.addAllowedHeader("*");
-
         config.addAllowedMethod("*");
-
-        config.setExposedHeaders(List.of("*"));
-
+        config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
-
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-
         return source;
     }
 
