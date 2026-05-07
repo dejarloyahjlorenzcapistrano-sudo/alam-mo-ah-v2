@@ -384,7 +384,7 @@ function AboutPage() {
             </div>
 
             <div className="about-footer-note">
-                © 2026 All Rights Reserved • Developed by the Project Team
+                © 2026 All Rights Reserved • Bilyaran ni Nasus sa QCU
             </div>
         </div>
     );
