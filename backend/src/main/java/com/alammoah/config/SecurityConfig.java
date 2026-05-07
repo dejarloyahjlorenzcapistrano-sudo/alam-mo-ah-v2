@@ -57,13 +57,13 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
-                        // ✅ Allow all CORS preflight requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // ✅ Allow register and login without a token
                         .requestMatchers("/api/auth/**").permitAll()
-                        // Everything else requires a valid JWT
+                        .requestMatchers("/api/languages/**").permitAll()   // ← add this
+                        .requestMatchers("/api/search/**").permitAll()      // ← add this
                         .anyRequest().authenticated()
                 )
+
 
                 .authenticationProvider(authenticationProvider())
 
