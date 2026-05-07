@@ -22,7 +22,8 @@ public class CorsConfig {
                 registry.addMapping("/**")
                         .allowedOrigins(
                                 "https://alam-mo-ah-v2.vercel.app",
-                                "https://alam-mo-ah-v2-ri1xhsgqq.vercel.app"
+                                "https://alam-mo-ah-v2-ri1xhsgqq.vercel.app",
+                                "https://alam-mo-ah-v2-kyu4fpabg.vercel.app"
                         )
                         .allowedMethods("*")
                         .allowedHeaders("*")
